@@ -62,6 +62,7 @@ const groupedFields = {
 function Sidebar({ onDragStart, selectedElement, onUpdateElement, onAddElement }) {
     const [query, setQuery] = useState("");
     const [activeTab, setActiveTab] = useState("fields");
+    const fileInputRef = useRef(null);
 
     const filterFields = (fields) =>
         fields.filter((f) => f.toLowerCase().includes(query.toLowerCase()));
@@ -78,11 +79,42 @@ function Sidebar({ onDragStart, selectedElement, onUpdateElement, onAddElement }
                 height: 100,
                 borderWidth: 1
             });
+        } else if (type === "image") {
+            // Trigger file input for image upload
+            fileInputRef.current?.click();
         }
+    };
+
+    const handleImageUpload = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                onAddElement({
+                    type: "image",
+                    src: e.target.result,
+                    width: 200,
+                    height: 150,
+                    alt: "Uploaded Image"
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+        // Reset file input
+        event.target.value = '';
     };
 
     return (
         <div className="w-72 border-r border-gray-200 bg-gray-50 flex flex-col overflow-hidden">
+            {/* Hidden file input for image upload */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
+                className="hidden"
+            />
+            
             <div className="p-5 border-b border-gray-200 bg-white">
                 <h2 className="text-lg font-semibold text-gray-800">Template Builder</h2>
             </div>
@@ -177,6 +209,13 @@ function Sidebar({ onDragStart, selectedElement, onUpdateElement, onAddElement }
                             <Table size={18} className="text-gray-600" />
                             <span className="text-sm font-medium">Add Table</span>
                         </button>
+                        <button
+                            onClick={() => addStaticElement("image")}
+                            className="w-full flex items-center gap-3 bg-white p-3 border border-gray-200 rounded-md hover:border-blue-500 hover:shadow-sm transition-all"
+                        >
+                            <ImageIcon size={18} className="text-gray-600" />
+                            <span className="text-sm font-medium">Add Image</span>
+                        </button>
                     </div>
                 </div>
             )}
@@ -232,6 +271,59 @@ function Sidebar({ onDragStart, selectedElement, onUpdateElement, onAddElement }
                                             min="0"
                                             max="5"
                                         />
+                                    </div>
+                                </>
+                            ) : selectedElement.type === "image" ? (
+                                <>
+                                    <div className="mb-4">
+                                        <label className="block text-xs font-medium text-gray-600 mb-2">Image Preview</label>
+                                        <div className="border border-gray-300 rounded-md p-2 bg-gray-50 flex justify-center">
+                                            <img 
+                                                src={selectedElement.src} 
+                                                alt={selectedElement.alt || "Image"} 
+                                                className="max-h-32 max-w-full object-contain"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-xs font-medium text-gray-600 mb-2">Width (px)</label>
+                                        <input
+                                            type="number"
+                                            value={selectedElement.width || 200}
+                                            onChange={(e) => onUpdateElement({ ...selectedElement, width: parseInt(e.target.value) })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500"
+                                            min="50"
+                                            max="600"
+                                        />
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-xs font-medium text-gray-600 mb-2">Height (px)</label>
+                                        <input
+                                            type="number"
+                                            value={selectedElement.height || 150}
+                                            onChange={(e) => onUpdateElement({ ...selectedElement, height: parseInt(e.target.value) })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500"
+                                            min="50"
+                                            max="600"
+                                        />
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-xs font-medium text-gray-600 mb-2">Alt Text</label>
+                                        <input
+                                            type="text"
+                                            value={selectedElement.alt || ""}
+                                            onChange={(e) => onUpdateElement({ ...selectedElement, alt: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500"
+                                            placeholder="Image description"
+                                        />
+                                    </div>
+                                    <div className="mb-4">
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 hover:border-blue-500 transition-colors text-sm font-medium text-gray-700"
+                                        >
+                                            Change Image
+                                        </button>
                                     </div>
                                 </>
                             ) : (
@@ -301,6 +393,7 @@ function Sidebar({ onDragStart, selectedElement, onUpdateElement, onAddElement }
 
 function Canvas({ elements, onDropToPage, onElementMove, onSelectElement, selectedElement, onDeleteElement }) {
     const pageRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     const allowDrop = (e) => e.preventDefault();
 
@@ -375,6 +468,36 @@ function Canvas({ elements, onDropToPage, onElementMove, onSelectElement, select
                     )}
                 </div>
             );
+        } else if (el.type === "image") {
+            return (
+                <div
+                    key={el.id}
+                    draggable
+                    onDragEnd={(e) => handleElementDragEnd(e, i)}
+                    onClick={() => onSelectElement(el, i)}
+                    className={`absolute cursor-move ${selectedElement?.id === el.id ? 'ring-2 ring-blue-500' : ''}`}
+                    style={{ left: `${el.x}px`, top: `${el.y}px` }}
+                >
+                    <img
+                        src={el.src}
+                        alt={el.alt || "Image"}
+                        style={{
+                            width: `${el.width || 200}px`,
+                            height: `${el.height || 150}px`,
+                            objectFit: 'contain'
+                        }}
+                        className="border border-gray-300"
+                    />
+                    {selectedElement?.id === el.id && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onDeleteElement(i); }}
+                            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                        >
+                            <Trash2 size={12} />
+                        </button>
+                    )}
+                </div>
+            );
         }
 
         return (
@@ -411,6 +534,14 @@ function Canvas({ elements, onDropToPage, onElementMove, onSelectElement, select
 
     return (
         <div className="flex-1 flex flex-col bg-gray-100 overflow-hidden">
+            {/* Hidden file input for image upload */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                className="hidden"
+            />
+            
             <div className="flex gap-2 p-3 bg-white border-b border-gray-200">
                 <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 hover:border-blue-500 transition-colors text-sm font-medium text-gray-700">
                     <Save size={16} />
@@ -445,6 +576,7 @@ export default function MainTemplateBuilder() {
     const [draggingField, setDraggingField] = useState(null);
     const [selectedElement, setSelectedElement] = useState(null);
     const [selectedIndex, setSelectedIndex] = useState(null);
+    const fileInputRef = useRef(null);
 
     const handleDragStart = (e, field) => {
         setDraggingField(field);
