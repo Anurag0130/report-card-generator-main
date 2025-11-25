@@ -7,7 +7,7 @@ import UpdatedReportCardGenerator from './components/UpdatedReportCardGenerator'
 const App = () => {
   return (
     <div>
-      {/* <DocumentPreview /> */}
+      <DocumentPreview />
       {/* <MainTemplateBuilder /> */}
       {/* <ReportCardGenerator /> */}
       {/* <UpdatedReportCardGenerator /> */}
